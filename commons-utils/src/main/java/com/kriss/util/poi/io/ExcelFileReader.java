@@ -1,4 +1,4 @@
-package com.kriss.util.poi;
+package com.kriss.util.poi.io;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -17,12 +17,10 @@ import com.kriss.collection.adt.TabularDS;
 public class ExcelFileReader {
 	
 	/**
-	 * @param fileName 
-	 			- Full path of the file
-	 * @param sheetNumber
-	 			- Starts with 0
-	 * @param rows
-	 			- Excluding the Headers
+	 * @apiNote: 
+	 * @param fileName - Full path of the file
+	 * @param sheetNumber - Starts with 0
+	 * @param rows - Excluding the Headers
 	 * @param columns
 	 * @param hasHeader
 	 * @return
@@ -85,12 +83,10 @@ public class ExcelFileReader {
 	
 	
 	/**
-	 * @param fileName 
-	 			- Full path of the file
-	 * @param sheetNumber
-	 			- Starts with 0
-	 * @param rows
-	 			- Excluding the Headers
+	 * @apiNote: 
+	 * @param fileName - Full path of the file
+	 * @param sheetNumber - Starts with 0
+	 * @param rows - Excluding the Headers
 	 * @param columns
 	 * @param hasHeader
 	 * @return

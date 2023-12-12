@@ -1,7 +1,7 @@
 package com.kriss.util.poi.ams.issues;
 
 import com.kriss.collection.adt.TabularDS;
-import com.kriss.util.poi.ExcelFileReader;
+import com.kriss.util.poi.io.ExcelFileReader;
 
 public class AMSEventParser {
 

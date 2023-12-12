@@ -7,14 +7,13 @@ import java.util.Set;
 
 /**
  * @author krishgo
- *	
- *	Row and Column indexes starts from 0
+ * @apiNote: 
+ * 		- Stores the values of table items in a Tabular fashion.
+ *		- Row and Column indexes start from 0
+ *
  */
 public class StaticTDS extends TabularDS {
 
-	/**
-	 * 	The values of table items in a Tabular fashion.
-	 */
 	private Object[][] values;
 	
 	public StaticTDS() {}
@@ -146,6 +145,31 @@ public class StaticTDS extends TabularDS {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder("TabularDS ");
+		builder.append("[rows=" + rows + ", columns=" + columns + ", columnHeaders=" + Arrays.toString(columnHeaders) + "]");
+		builder.append("\n");
+		builder.append("Values= [");
+		builder.append("\n");
+		int k = 0;
+		if (hasHeaders) k++;
+		if (values != null) {
+			for(int i=0; i<rows; i++) {
+				builder.append(k+1 + " : [");
+				for(int j=0; j<columns; j++) {
+					if(j != 0) builder.append(" ,");
+					builder.append(values[i][j]);
+				}
+				builder.append("]");
+				builder.append("\n");
+				k++;
+			}
+		}
+		builder.append("]");
+		return builder.toString();
+	}
+	
+	@Override
+	public String printSpecificColumns() {
+		StringBuilder builder = new StringBuilder("Limited Column TabularDS:");
 		builder.append("[rows=" + rows + ", columns=" + columns + ", columnHeaders=" + Arrays.toString(columnHeaders) + "]");
 		builder.append("\n");
 		builder.append("Values= [");

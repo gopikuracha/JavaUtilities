@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.kriss.collection.adt.TabularDS;
-import com.kriss.util.poi.ExcelFileReader;
+import com.kriss.util.poi.io.ExcelFileReader;
 
 public class AMSReporting {
 	
