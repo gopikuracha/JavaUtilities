@@ -1,5 +1,6 @@
 package com.kriss.collection.adt;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -41,13 +42,47 @@ public class StaticTDS extends TabularDS {
 	}
 	
 	@Override
+	public Object getValue(int row, int column) {
+		return this.values[row][column];
+	}
+	
+	@Override
 	public void setValue(int row, int column, Object obj) {
 		this.values[row][column] = obj;
 	}
 	
 	@Override
-	public Object getValue(int row, int column) {
-		return this.values[row][column];
+	public void append(TabularDS tds) {
+		if(tds == null || tds.getColumnHeaders() == null) return;
+		if (this.columnHeaders == null) return;
+		if (this.columnHeaders.length != tds.getColumnHeaders().length) {
+			System.out.println("TDS does not match");
+			return;
+		}
+
+		//TODO
+	}
+	
+	@Override
+	public int getColumnIndex(String columnName) {
+		if (columnName == null) return -1;
+		int count = 0;
+		for (String str : this.columnHeaders) {
+			if (columnName.equalsIgnoreCase(str)) break;
+			count++;
+		}
+		if (count == columnHeaders.length) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return -1;
+		}
+		return count;
+	}
+	
+	@Override
+	public TabularDS filterValuesWithColumnNames(String columnName, String filterValue) {
+		int index = getColumnIndex(columnName);
+		if(index == -1) return null;
+		return filterValues(index, filterValue);
 	}
 	
 	@Override
@@ -64,6 +99,7 @@ public class StaticTDS extends TabularDS {
 		}
 		
 		TabularDS results = new StaticTDS(count, this.columns, this.hasHeaders);
+		results.setColumnHeaders(this.getColumnHeaders());
 		
 		int k = 0;
 		for(int i=0; i<this.rows; i++) {
@@ -80,6 +116,13 @@ public class StaticTDS extends TabularDS {
 	}
 	
 	@Override
+	public TabularDS filterValuesWithColumnNames(String columnName, List<String> filterValue) {
+		int index = getColumnIndex(columnName);
+		if(index == -1) return null;
+		return filterValues(index, filterValue);
+	}
+	
+	@Override
 	public TabularDS filterValues(int column, List<String> filterValues) {
 		if (filterValues == null) return null;
 		if (this.getValues() == null) return null;
@@ -93,6 +136,7 @@ public class StaticTDS extends TabularDS {
 		}
 		
 		TabularDS results = new StaticTDS(count, this.columns, this.hasHeaders);
+		results.setColumnHeaders(this.getColumnHeaders());
 		
 		int k = 0;
 		for(int i=0; i<this.rows; i++) {
@@ -109,11 +153,33 @@ public class StaticTDS extends TabularDS {
 	}
 	
 	@Override
+	public TabularDS filterColumnsWithColumnNames(List<String> columnNames) {
+		if (columnNames == null) return null;
+		List<Integer> columnNumbers = new ArrayList<Integer>();
+		for (String str : columnNames) {
+			int index = getColumnIndex(str);
+			if (index == -1) continue;
+			columnNumbers.add(index);
+		}
+		return filterColumns(columnNames, columnNumbers);
+	}
+	
+	@Override
 	public TabularDS filterColumns(List<Integer> columnNumbers) {
+		return filterColumns(null, columnNumbers);
+	}
+	
+	@Override
+	public TabularDS filterColumns(List<String> columnNames, List<Integer> columnNumbers) {
 		if (columnNumbers == null) return null;
 		if (this.getValues() == null) return null;
 		
 		TabularDS results = new StaticTDS(this.rows, columnNumbers.size(), this.hasHeaders);
+		String[] str = new String[columnNames.size()];
+        for (int i = 0; i < columnNames.size(); i++) {
+            str[i] = columnNames.get(i);
+        }
+		results.setColumnHeaders(str);
 		
 		for(int i=0; i<this.rows; i++) {
 			int k = 0;
@@ -145,31 +211,6 @@ public class StaticTDS extends TabularDS {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder("TabularDS ");
-		builder.append("[rows=" + rows + ", columns=" + columns + ", columnHeaders=" + Arrays.toString(columnHeaders) + "]");
-		builder.append("\n");
-		builder.append("Values= [");
-		builder.append("\n");
-		int k = 0;
-		if (hasHeaders) k++;
-		if (values != null) {
-			for(int i=0; i<rows; i++) {
-				builder.append(k+1 + " : [");
-				for(int j=0; j<columns; j++) {
-					if(j != 0) builder.append(" ,");
-					builder.append(values[i][j]);
-				}
-				builder.append("]");
-				builder.append("\n");
-				k++;
-			}
-		}
-		builder.append("]");
-		return builder.toString();
-	}
-	
-	@Override
-	public String printSpecificColumns() {
-		StringBuilder builder = new StringBuilder("Limited Column TabularDS:");
 		builder.append("[rows=" + rows + ", columns=" + columns + ", columnHeaders=" + Arrays.toString(columnHeaders) + "]");
 		builder.append("\n");
 		builder.append("Values= [");

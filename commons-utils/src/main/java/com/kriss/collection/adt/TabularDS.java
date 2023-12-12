@@ -96,7 +96,21 @@ public class TabularDS {
 		return null;
 	}
 	
+	public void append(TabularDS tds) {}
+	
+	public int getColumnIndex(String columnName) {
+		return -1;
+	}
+	
+	public TabularDS filterValuesWithColumnNames(String columnName, String filterValue) {
+		return null;
+	}
+	
 	public TabularDS filterValues(int column, String filterValue) {
+		return null;
+	}
+	
+	public TabularDS filterValuesWithColumnNames(String columnName, List<String> filterValue) {
 		return null;
 	}
 	
@@ -104,7 +118,15 @@ public class TabularDS {
 		return null;
 	}
 	
+	public TabularDS filterColumnsWithColumnNames(List<String> columnNames) {
+		return null;
+	}
+	
 	public TabularDS filterColumns(List<Integer> columnNumbers) {
+		return null;
+	}
+	
+	public TabularDS filterColumns(List<String> columnNames, List<Integer> columnNumbers) {
 		return null;
 	}
 	

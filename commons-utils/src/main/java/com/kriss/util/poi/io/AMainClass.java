@@ -1,16 +1,24 @@
 package com.kriss.util.poi.io;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import com.kriss.collection.adt.TabularDS;
 import com.kriss.util.poi.data.ExcelDataProcessor;
 import com.kriss.util.poi.data.model.ExcelDataMap;
-import com.kriss.util.poi.data.model.RowDataMap;	
+import com.kriss.util.poi.data.model.RowDataMap;
+import com.kriss.util.print.DesiredPrinting;	
 
 public class AMainClass {
 
 	public static void main(String[] args) {
+		//testTransactionsFile();
+		testPersonalLaptopLocalFile();
 		
+	}
+	
+	public static void testTransactionsFile () {
 		/** Basics - To Understand the concept of read/write of an Excel file **/
 		// SampleExcelUtil util = new SampleExcelUtil();
 		
@@ -55,6 +63,32 @@ public class AMainClass {
 		
 		// TODO - /** Step3 - To filter the results on extracted data (TDS) **/
 
+		
+	}
+	
+	public static void testPersonalLaptopLocalFile() {
+		/** Step1 - To read and extract an Excel file **/
+		ExcelFileReader reader = new ExcelFileReader();
+		String fileName = "D:/Gopi/Documents/Agriculture.xlsx";
+		TabularDS tds = reader.readFileWithIndex(fileName, 0, 95, 9, true, false);
+		
+		System.out.println(tds);
+		
+		/** Step2 - Process Data **/
+		Set<String> unique = tds.getUniqueValues(1);
+		DesiredPrinting.printASet("Category from Report", unique);
+		
+		//TabularDS filterdRowsTDS = tds.filterValues(0, Arrays.asList("Potato", "Garlic"));
+		//System.out.println(filterdRowsTDS);
+		
+		TabularDS filterdRowsTDS = tds.filterValuesWithColumnNames("name", Arrays.asList("Potato", "Garlic"));
+		System.out.println(filterdRowsTDS);
+		
+		//TabularDS filteredColTDS = filterdRowsTDS.filterColumns(Arrays.asList(0, 1));
+		//System.out.println(filteredColTDS);
+		
+		TabularDS filteredColTDS = filterdRowsTDS.filterColumnsWithColumnNames(Arrays.asList("name", "category"));
+		System.out.println(filteredColTDS);
 		
 	}
 	
