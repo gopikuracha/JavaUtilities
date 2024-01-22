@@ -124,7 +124,7 @@ public class StaticTDS extends TabularDS {
 	
 	@Override
 	public TabularDS filterValues(int column, List<String> filterValues) {
-		if (filterValues == null) return null;
+		if (filterValues == null || filterValues.size() == 0) return null;
 		if (this.getValues() == null) return null;
 		
 		// Get the count of records that match the filter

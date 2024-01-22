@@ -2,7 +2,9 @@ package com.kriss.util.poi.io;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -10,6 +12,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import com.kriss.collection.adt.ArrayListTDS;
 import com.kriss.collection.adt.DynamicTDS;
 import com.kriss.collection.adt.StaticTDS;
 import com.kriss.collection.adt.TabularDS;
@@ -149,6 +152,74 @@ public class ExcelFileReader {
 	        		}
 	        	}
 	        
+	        }
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			try { if(workbook!=null) workbook.close(); } catch(IOException ioe) {ioe.printStackTrace();}
+			try { if(inputStream!=null) inputStream.close(); } catch(IOException ioe) {ioe.printStackTrace();}
+		}
+		return tds;
+	}
+	
+	
+	/**
+	 * @apiNote: 
+	 * @param fileName - Full path of the file
+	 * @param sheetNumber - Starts with 0
+	 * @param rows - Excluding the Headers
+	 * @param columns
+	 * @param hasHeader
+	 * @return
+	 */
+	public ArrayListTDS readFileWithIndex(String fileName, int sheetNumber, int rows, int columns, boolean hasHeader) {
+		ArrayListTDS tds = new ArrayListTDS();
+		List<List<String>> records = tds.getRecords();
+		List<String> columnHeaders = tds.getColumnHeaders();
+		
+		Workbook workbook = null;
+		FileInputStream inputStream = null;
+		try {
+			inputStream = new FileInputStream(fileName);
+			workbook = new XSSFWorkbook(inputStream);
+	        Sheet sheet = workbook.getSheetAt(sheetNumber);
+	        
+	        if (hasHeader) rows++;
+	        for(int i=0; i < rows; i++) {
+	        	Row row = sheet.getRow(i);
+	        	
+	        	if (row == null) { records.add(null); continue; }
+	        	List<String> record = new ArrayList<String>();
+	        	for(int j=0; j < columns; j++) {
+	        		Cell cell = row.getCell(j);
+	        		
+	        		if (hasHeader && i == 0) {
+	        			if (cell == null) columnHeaders.add(null);
+	        			else columnHeaders.add(cell.getStringCellValue());
+	        			continue;
+	        		} else if (cell == null) {
+	        			record.add(null); 
+	        			continue; 
+	        		}
+	        		
+	        		switch (cell.getCellType()) {
+                    case STRING:
+                    	record.add(cell.getStringCellValue());
+                        break;
+                    case BOOLEAN:
+                    	record.add(Boolean.toString(cell.getBooleanCellValue()));
+                        break;
+                    case NUMERIC:
+                    	Double cellVal = cell.getNumericCellValue();
+                    	String str = Double.toString(cellVal);
+                    	String value = str.substring(0, str.indexOf("."));
+                    	record.add(value);
+                        break;
+                    default:
+                    	record.add(null);
+	        		}
+	        	}
+	        	if (!(i == 0)) records.add(record);
 	        }
 		} catch(Exception e) {
 			e.printStackTrace();
