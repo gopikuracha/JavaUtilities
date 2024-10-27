@@ -2,12 +2,21 @@ package com.kriss.collection.adt;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class ArrayListTDS {
 
+	/**
+	 * 	The name of the Input source
+	 */
+	private String source;
+	
 	/**
 	 * 	The table Column Headers
 	 */
@@ -31,6 +40,14 @@ public class ArrayListTDS {
 		return columnHeaders.size();
 	}
 	
+	public String getSource() {
+		return source;
+	}
+
+	public void setSource(String source) {
+		this.source = source;
+	}
+
 	public List<String> getColumnHeaders() {
 		return columnHeaders;
 	}
@@ -113,7 +130,7 @@ public class ArrayListTDS {
 	 */
 	public List<String> cutRecord(int rowIndex) {
 		if (rowIndex > records.size()) {
-			System.out.println("Insert rowIndex is greater than the TDS rows size.");
+			System.out.println("Cut rowIndex is greater than the TDS rows size.");
 			return null;
 		}
 		return records.remove(rowIndex-1);
@@ -232,13 +249,504 @@ public class ArrayListTDS {
 	}
 	
 	/**
+	 * Table feature: Add rows from other TDS at the end
+	 * 
+	 */
+	public boolean appendRecords(ArrayListTDS secondTDS) {
+		if (secondTDS == null) return false;
+		if (secondTDS.rows() == 0) return false;
+		if (secondTDS.getColumnHeaders() != null && secondTDS.getColumnHeaders() == columnHeaders) {
+			setSource(source + "\n" + "\t" + "Merged with..." + "\n" + "\t"+ secondTDS.getSource());
+			Iterator<List<String>> itr = secondTDS.getRecords().iterator();
+			while (itr.hasNext()) {
+				List<String> record = (List<String>) itr.next();
+				if (record == null) continue;
+				records.add(record);
+			}
+		} else return false;
+		return true;
+	}
+	
+	/**
+	 * Table feature: Get or Ignore Filtered Rows for a specific Column value
+	 * Options:
+	 * 		With Column Name
+	 * 		Single Filter Value
+	 *  	(true for Ignore) | (false for Get)
+	 */
+	public ArrayListTDS getFilteredRecords(String columnName, String filterValue, boolean ignore) {
+		if (columnName == null) return null;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return null;
+		}
+		return getFilteredRecords(colIndex+1, filterValue, ignore);
+	}
+	
+	/**
+	 * Table feature: Get or Ignore Filtered Rows for a specific Column value
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 * 		Single Filter Value
+	 * 		(true for Ignore) | (false for Get)
+	 */
+	public ArrayListTDS getFilteredRecords(int colIndex, String filterValue, boolean ignore) {
+		colIndex = colIndex-1;
+		if (filterValue == null || filterValue.equalsIgnoreCase("")) return null;
+		
+		ArrayListTDS getTDS = new ArrayListTDS();
+		getTDS.setSource(this.source + "\n" + "\t" + "- Filtered Column: " + columnHeaders.get(colIndex) + " with values(s): " + filterValue);
+		getTDS.setColumnHeaders(columnHeaders);
+		
+		ArrayListTDS ignoreTDS = new ArrayListTDS();
+		ignoreTDS.setSource(this.source + "\n" + "\t" + "- Ignored Column: " + columnHeaders.get(colIndex) + " for values(s): " + filterValue);
+		ignoreTDS.setColumnHeaders(columnHeaders);
+		
+		Iterator<List<String>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<String> record = (List<String>) itr.next();
+			if (record == null) continue;
+			if (record.get(colIndex) != null && record.get(colIndex).equals(filterValue)) {
+				getTDS.getRecords().add(record);
+			} else {
+				ignoreTDS.getRecords().add(record);
+			}
+		}
+		return (ignore) ? ignoreTDS : getTDS;
+	}
+	
+	/**
+	 * Table feature: Get or Ignore Filtered Rows for specific Column values
+	 * Options:
+	 * 		With Column Name
+	 * 		Multiple Filter Value
+	 * 		(true for Ignore) | (false for Get)
+	 */
+	public ArrayListTDS getFilteredRecords(String columnName, List<String> filterValues, boolean ignore) {
+		if (columnName == null) return null;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return null;
+		}
+		return getFilteredRecords(colIndex+1, filterValues, ignore);
+	}
+	
+	/**
+	 * Table feature: Get or Ignore Filtered Rows for specific Column values
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 * 		Multiple Filter Value
+	 *		(true for Ignore) | (false for Get)
+	 */
+	public ArrayListTDS getFilteredRecords(int colIndex, List<String> filterValues, boolean ignore) {
+		colIndex = colIndex-1;
+		if (filterValues == null || filterValues.size() == 0) return null;
+		ArrayListTDS getTDS = new ArrayListTDS();
+		getTDS.setSource(this.source + "\n" + "\t" + "- Filtered Column: " + columnHeaders.get(colIndex) + " with values(s): " + filterValues);
+		getTDS.setColumnHeaders(columnHeaders);
+		
+		ArrayListTDS ignoreTDS = new ArrayListTDS();
+		ignoreTDS.setSource(this.source + "\n" + "\t" + "- Ignored Column: " + columnHeaders.get(colIndex) + " for values(s): " + filterValues);
+		ignoreTDS.setColumnHeaders(columnHeaders);
+		
+		Iterator<List<String>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<String> record = (List<String>) itr.next();
+			if (record == null) continue;
+			if (record.get(colIndex) != null && filterValues.contains(record.get(colIndex))) {
+				getTDS.getRecords().add(record);
+			} else {
+				ignoreTDS.getRecords().add(record);
+			}
+		}
+		return (ignore) ? ignoreTDS : getTDS;
+	}
+	
+	/**
+	 * Table feature: Get or Ignore Filtered Rows for specific Column values
+	 * Options:
+	 * 		With Column Name
+	 * 		Multiple Filter Value - Wild card search
+	 * 		(true for Ignore) | (false for Get)
+	 */
+	public ArrayListTDS getFilteredRecordsWithWildCardSearch(String columnName, List<String> filterValues, boolean ignore) {
+		if (columnName == null) return null;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return null;
+		}
+		return getFilteredRecordsWithWildCardSearch(colIndex+1, filterValues, ignore);
+	}
+	
+	/**
+	 * Table feature: Get or Ignore Filtered Rows for specific Column values
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 * 		Multiple Filter Value - Wild card search
+	 *		(true for Ignore) | (false for Get)
+	 */
+	public ArrayListTDS getFilteredRecordsWithWildCardSearch(int colIndex, List<String> filterValues, boolean ignore) {
+		colIndex = colIndex-1;
+		if (filterValues == null || filterValues.size() == 0) return null;
+		ArrayListTDS getTDS = new ArrayListTDS();
+		getTDS.setSource(this.source + "\n" + "\t" + "- Filtered Column: " + columnHeaders.get(colIndex) + " with Wild Card Search values(s): " + filterValues);
+		getTDS.setColumnHeaders(columnHeaders);
+		
+		ArrayListTDS ignoreTDS = new ArrayListTDS();
+		ignoreTDS.setSource(this.source + "\n" + "\t" + "- Ignored Column: " + columnHeaders.get(colIndex) + " for Wild Card Search values(s): " + filterValues);
+		ignoreTDS.setColumnHeaders(columnHeaders);
+		
+		Iterator<List<String>> itr = records.iterator();
+		while (itr.hasNext()) {
+			boolean present = false;
+			List<String> record = (List<String>) itr.next();
+			if (record == null) continue;
+			for (String filterValue : filterValues) {
+				if (record.get(colIndex).contains(filterValue)) {
+					getTDS.getRecords().add(record);
+					present = true;
+					break;
+				}
+			}
+			if (!present) ignoreTDS.getRecords().add(record);
+		}
+		return (ignore) ? ignoreTDS : getTDS;
+	}
+	
+	/**
+	 * Table feature: Get or Ignore Null Rows for a specific Column value
+	 * Options:
+	 * 		With Column Name
+	 * 		(true for Ignore) | (false for Get)
+	 */
+	public ArrayListTDS ignoreNullRecords(String columnName, boolean ignore) {
+		if (columnName == null) return null;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return null;
+		}
+		return ignoreNullRecords(colIndex+1, ignore);
+	}
+	
+	/**
+	 * Table feature: Get or Ignore Null Rows for a specific Column value
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 * 		(true for Ignore) | (false for Get)
+	 */
+	public ArrayListTDS ignoreNullRecords(int colIndex, boolean ignore) {
+		colIndex = colIndex-1;
+		
+		ArrayListTDS getTDS = new ArrayListTDS();
+		getTDS.setSource(this.source + "\n" + "\t" + "- Filtered Column: " + columnHeaders.get(colIndex) + " with Null values(s)");
+		getTDS.setColumnHeaders(columnHeaders);
+		
+		ArrayListTDS ignoreTDS = new ArrayListTDS();
+		ignoreTDS.setSource(this.source + "\n" + "\t" + "- Ignored Column: " + columnHeaders.get(colIndex) + " for Null values(s)");
+		ignoreTDS.setColumnHeaders(columnHeaders);
+		
+		Iterator<List<String>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<String> record = (List<String>) itr.next();
+			if (record == null) continue;
+			if (record.get(colIndex) == null) {
+				getTDS.getRecords().add(record);
+			} else {
+				ignoreTDS.getRecords().add(record);
+			}
+		}
+		return (ignore) ? ignoreTDS : getTDS;
+	}
+	
+	/**
+	 * Table feature: Get Specific Columns data
+	 * Options:
+	 * 		With Column Names
+	 */
+	public ArrayListTDS getRecordsForSpecificColumns(List<String> columnNames) {
+		if (columnNames == null || columnNames.size() == 0) {
+			System.out.println("Incorrect Column Data");
+			return null;
+		}
+		ArrayListTDS newTDS = new ArrayListTDS();
+		newTDS.setSource(this.source + "\n" + "\t" + "- Shortened Columns to: " + columnNames);
+		for (String colName : columnNames) {
+			int colIndex = columnHeaders.indexOf(colName);
+			if (colIndex == -1) {
+				System.out.println("Incorrect Column Name : " + colName);
+				continue;
+			}
+			newTDS.getColumnHeaders().add(colName);
+		}
+		for (List<String> record : records) {
+			if (record == null) continue;
+			List<String> newRecord = new ArrayList<String>();
+			for (String columnName : newTDS.getColumnHeaders()) {
+				int colIndex = columnHeaders.indexOf(columnName);
+				newRecord.add(record.get(colIndex));
+			}
+			newTDS.getRecords().add(newRecord);
+		}
+		return newTDS;
+	}
+	
+	/**
+	 * Table feature: Get Distinct data for a Column, sorted ASC
+	 * Options:
+	 * 		With Column Name
+	 */
+	public Set<String> getUniqueValues(String columnName) {
+		if (columnName == null) return null;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return null;
+		}
+		return getUniqueValues(colIndex+1);
+	}
+	
+	/**
+	 * Table feature: Get Distinct data for a Column
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 */
+	public Set<String> getUniqueValues(int colIndex) {
+		colIndex = colIndex-1;
+		Set<String> results = new TreeSet<String>();
+		Iterator<List<String>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<String> record = (List<String>) itr.next();
+			if (record == null) continue;
+			String value = record.get(colIndex);
+			if (value != null) results.add(value);
+		}
+		return results;
+	}
+	
+	/**
+	 * Get the count of Filtered Rows for specific Column values
+	 * Options:
+	 * 		With Column Name
+	 */
+	public int getFilteredRecordsCount(String columnName, String filterValue) {
+		if (columnName == null) return -1;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return -1;
+		}
+		return getFilteredRecordsCount(colIndex+1, filterValue);
+	}
+	
+	/**
+	 * Get the count of Filtered Rows for specific Column values
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 */
+	public int getFilteredRecordsCount(int colIndex, String filterValue) {
+		colIndex = colIndex-1;
+		if (filterValue == null || filterValue.equalsIgnoreCase("")) return -1;
+		
+		int filterCount = 0;
+		Iterator<List<String>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<String> record = (List<String>) itr.next();
+			if (record == null) continue;
+			if (record.get(colIndex) != null && record.get(colIndex).equals(filterValue)) {
+				filterCount++;
+			}
+		}
+		return filterCount;
+	}
+	
+	/**
+	 * Get the count of Filtered Rows for specific Column values
+	 * Options:
+	 * 		With Column Name
+	 */
+	public int getFilteredRecordsCount(String columnName, List<String> filterValues) {
+		if (columnName == null) return -1;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return -1;
+		}
+		return getFilteredRecordsCount(colIndex+1, filterValues);
+	}
+	
+	/**
+	 * Get the count of Filtered Rows for specific Column values
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 */
+	public int getFilteredRecordsCount(int colIndex, List<String> filterValues) {
+		colIndex = colIndex-1;
+		if (filterValues == null || filterValues.size() == 0) return -1;
+		
+		int filterCount = 0;
+		Iterator<List<String>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<String> record = (List<String>) itr.next();
+			if (record == null) continue;
+			if (record.get(colIndex) != null && filterValues.contains(record.get(colIndex))) {
+				filterCount++;
+			}
+		}
+		return filterCount;
+	}
+	
+	/**
+	 * Count of Null Rows for a specific Column value
+	 * Options:
+	 * 		With Column Name
+	 */
+	public int getNullRecordsCount(String columnName) {
+		if (columnName == null) return -1;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return -1;
+		}
+		return getNullRecordsCount(colIndex+1);
+	}
+	
+	/**
+	 * Count of Null Rows for a specific Column value
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 */
+	public int getNullRecordsCount(int colIndex) {
+		colIndex = colIndex-1;
+		int nullCount = 0;
+		Iterator<List<String>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<String> record = (List<String>) itr.next();
+			if (record == null || record.get(colIndex) == null) { 
+				nullCount++;
+			}
+		}
+		return nullCount;
+	}
+	
+	/**
+	 * Returns a String of the Overview of the Tabular Data split by a each Column
+	 * Options:
+	 * 		Ignore the Columns that are not required in the Overview
+	 */
+	public String getDataOverview(List<String> skipColumns) {
+		StringBuilder builder = new StringBuilder("\n" + "----- Data Overview Start -----");
+		for (String column : this.columnHeaders) {
+			if (skipColumns == null || !skipColumns.contains(column)) {
+				builder.append("\n" + "\n" + getFilteredRecordsSplitByAColumn(column, null));
+			}
+		}
+		return builder.append("\n" + "----- Data Overview End -----").toString();
+	}
+	
+	/**
+	 * Returns a String of the results filtered and split by a specific Column
+	 * 
+	 */
+	public String getFilteredRecordsSplitByAColumn(String columnName, Map<String, List<String>> filterValues) {
+		if (columnName == null) return null;
+		StringBuilder builder = new StringBuilder("Split Column - " + columnName + " | ");
+		ArrayListTDS filterTDS = this;
+		if (filterValues != null) {
+			builder.append("Filter Values: " + filterValues.toString() + " | Total count: ");
+			for (String key : filterValues.keySet()) {
+				filterTDS = filterTDS.getFilteredRecords(key, filterValues.get(key), false);
+			}
+			builder.append(filterTDS.rows());
+		} else builder.append("Filter Values: NONE" + " | Total count: " + filterTDS.rows());
+		
+		if (filterTDS.rows() != 0) {
+			int dataCount = 0; 
+			for (String columnValue : filterTDS.getUniqueValues(columnName)) {
+				int splitCount = filterTDS.getFilteredRecordsCount(columnName, columnValue);
+				builder.append("\n" + "\t" + columnValue + ": " + splitCount);
+				dataCount += splitCount;
+			}
+			if (filterTDS.rows() != dataCount) builder.append("\n" + "\t" + "NULL" + ": " + filterTDS.getNullRecordsCount(columnName));
+		} else builder.append("\n" + "Found empty results for the filter Values");
+		return builder.toString();
+	}
+	
+	/**
+	 * Returns a Map of the results filtered and split by a specific Column
+	 * 
+	 */
+	public Map<String, String> getMapOfFilteredRecordsSplitByAColumn(String columnName, Map<String, List<String>> filterValues) {
+		if (columnName == null) return null;
+		StringBuilder builder = new StringBuilder("Split Column - " + columnName + " | ");
+		ArrayListTDS filterTDS = this;
+		if (filterValues != null) {
+			builder.append("Filter Values: " + filterValues.toString() + " | Total count: ");
+			for (String key : filterValues.keySet()) {
+				filterTDS = filterTDS.getFilteredRecords(key, filterValues.get(key), false);
+			}
+			builder.append(filterTDS.rows());
+		} else builder.append("Filter Values: NONE" + " | Total count: " + filterTDS.rows());
+		
+		Map<String, String> results = new LinkedHashMap<String, String>();
+		if (filterTDS.rows() != 0) {
+			int dataCount = 0; 
+			for (String columnValue : filterTDS.getUniqueValues(columnName)) {
+				int splitCount = filterTDS.getFilteredRecords(columnName, columnValue, false).rows();
+				results.put(columnValue, String.valueOf(splitCount));
+				builder.append("\n" + "\t" + columnValue + ": " + splitCount);
+				dataCount += splitCount;
+			}
+			if (filterTDS.rows() != dataCount) {
+				int nullCount = filterTDS.getNullRecordsCount(columnName);
+				results.put("NULL", String.valueOf(nullCount));
+				builder.append("\n" + "\t" + "NULL: " + nullCount);
+			}
+		} else builder.append("\n" + "Found empty results for the filter Values");
+		
+		results.put("Total", String.valueOf(filterTDS.rows()));
+		results.put("Title", builder.toString());
+		return results;
+	}
+	
+	/**
+	 * Table feature: Sort the records ascending or descending
+	 * Options:
+	 * 		With Column Name
+	 */
+	public void sortRecordsWithColumnName(String columnName, boolean asc) {
+		if (columnName == null) return;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return;
+		}
+		sortRecordsWithColumnIndex(colIndex, asc);
+	}
+	
+	/**
+	 * Table feature: Sort the records ascending or descending
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 */
+	public void sortRecordsWithColumnIndex(int colIndex, boolean asc) {
+		SortTDSWithColIndex comparator = new SortTDSWithColIndex(colIndex);
+		if (asc) Collections.sort(getRecords(), comparator);
+		else Collections.sort(getRecords(), Collections.reverseOrder(comparator));
+	}
+	
+	/**
 	 * Table feature: Duplicate table
 	 * 
 	 */
 	public ArrayListTDS cloneTDS() {
 		ArrayListTDS newObject = new ArrayListTDS();
-		List<String> newColumnHeaders = new ArrayList<String>();
+		newObject.setSource(this.source);
 		
+		List<String> newColumnHeaders = new ArrayList<String>();
 		Iterator<String> itr = this.columnHeaders.iterator();
 		while (itr.hasNext()) {
 			String columnName = (String) itr.next();
@@ -265,118 +773,85 @@ public class ArrayListTDS {
 		return newObject;
 	}
 	
+	/**
+	 * Validates the data in TDS
+	 * 
+	 */
+	public String validateTDS() {
+		StringBuilder builder = new StringBuilder("Validate ArrayListTDS - " + getSource());
+		builder.append("\n");
+		builder.append("[rows=" + rows() + ", columns=" + columns() + "]");
+		builder.append("\n"); builder.append("\t");
+		
+		if (columnHeaders.size() == 0) builder.append("1. Column Headers are Empty");
+		else builder.append("1. Column Headers are not Empty");
+		
+		int nullHeaderCount = 0;
+		builder.append("\n"); builder.append("\t");
+		builder.append("2. Null Column Header Numbers: ");
+		for (String header : columnHeaders) {
+			nullHeaderCount++;
+			if (header == null) builder.append(nullHeaderCount + ", ");
+		}
+		
+		int recCount = 1;
+		int nullRecordsCount = 0;
+		StringBuilder nullRecords = new StringBuilder("4. Null Record Numbers: ");
+		Iterator<List<String>> itr2 = records.iterator();
+		while (itr2.hasNext()) {
+			List<String> record = (List<String>) itr2.next();
+			if (record == null) { nullRecords.append(recCount + ", "); nullRecordsCount++; }
+			recCount++;
+		}
+		builder.append("\n"); builder.append("\t");
+		builder.append("3. Null Records count: " + nullRecordsCount);
+		builder.append("\n"); builder.append("\t");
+		builder.append(nullRecords.toString());
+
+		return builder.toString();
+	}
+	
+	/**
+	 * Removes all the Null records in the TDS
+	 * 
+	 */
 	public boolean removeNullRecords() {
 		return records.removeAll(Collections.singleton(null));
 	}
 	
+	
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder("ArrayListTDS ");
-		builder.append("[rows=" + rows() + ", columns=" + columns() + ", columnHeaders=" + getColumnHeaders() + "]");
+		StringBuilder builder = new StringBuilder("ArrayListTDS - " + getSource());
+		builder.append("\n");
+		builder.append("[rows=" + rows() + ", columns=" + columns() + "]");
+		builder.append("\n");
+		builder.append("columnHeaders=" + getColumnHeaders());
 		builder.append("\n");
 		builder.append("Values= [");
 		builder.append("\n");
 		int k = 0;
 		Iterator<List<String>> itr = getRecords().iterator();
 		while (itr.hasNext()) {
+			k++;
 			builder.append(k + " : ");
 			List<String> record = (List<String>) itr.next();
 			builder.append(record);
 			builder.append("\n");
-			k++;
 		}
 		builder.append("]");
 		return builder.toString();
 	}
-	
-	/**
-	 * Table feature: Filter Rows for specific Column value
-	 * Options:
-	 * 		With Column Name
-	 * 		And single Filter Value 
-	 */
-	public ArrayListTDS filterValuesWithColumnNames(String columnName, String filterValue) {
-		if (columnName == null) return null;
-		int colIndex = columnHeaders.indexOf(columnName);
-		if (colIndex == -1) {
-			System.out.println("Did not find the Column with Name: " + columnName);
-			return null;
-		}
-		return filterValuesWithIndex(colIndex+1, filterValue);
+}
+
+class SortTDSWithColIndex implements Comparator<List<String>>
+{
+	int index;
+	public SortTDSWithColIndex(int index) {
+		this.index = index;
 	}
 	
-	/**
-	 * Table feature: Filter Rows for specific Column value
-	 * Options:
-	 * 		With Column Index (starts with 1)
-	 * 		And single Filter Value 
-	 */
-	public ArrayListTDS filterValuesWithIndex(int colIndex, String filterValue) {
-		colIndex = colIndex-1;
-		if (filterValue == null || filterValue.equalsIgnoreCase("")) return null;
-		ArrayListTDS subTDS = new ArrayListTDS();
-		
-		Iterator<List<String>> itr = records.iterator();
-		while (itr.hasNext()) {
-			List<String> record = (List<String>) itr.next();
-			if (record == null) continue;
-			if (record.get(colIndex) != null && record.get(colIndex).equals(filterValue)) {
-				subTDS.getRecords().add(record);
-			}
-		}
-		return subTDS;
-	}
-	
-	/**
-	 * Table feature: Filter Rows for specific Column value
-	 * Options:
-	 * 		With Column Index (starts with 1)
-	 * 
-	 */
-	public ArrayListTDS filterValuesWithColumnNames(String columnName, List<String> filterValues) {
-		if (columnName == null) return null;
-		int colIndex = columnHeaders.indexOf(columnName);
-		if (colIndex == -1) {
-			System.out.println("Did not find the Column with Name: " + columnName);
-			return null;
-		}
-		return filterValuesWithIndex(colIndex, filterValues);
-	}
-	
-	/**
-	 * Table feature: Filter Rows for specific Column value
-	 * Options:
-	 * 		With Column Index (starts with 1)
-	 * 
-	 */
-	public ArrayListTDS filterValuesWithIndex(int colIndex, List<String> filterValues) {
-		if (filterValues == null || filterValues.size() == 0) return null;
-		ArrayListTDS subTDS = new ArrayListTDS();
-		
-		Iterator<List<String>> itr = records.iterator();
-		while (itr.hasNext()) {
-			List<String> record = (List<String>) itr.next();
-			if (record == null) continue;
-			if (record.get(colIndex) != null && filterValues.contains(record.get(colIndex))) {
-				subTDS.getRecords().add(record);
-			}
-		}
-		return subTDS;
-	}
-	
-	public TabularDS filterColumnsWithColumnNames(List<String> columnNames) {
-		return null;
-	}
-	
-	public TabularDS filterColumns(List<Integer> columnNumbers) {
-		return null;
-	}
-	
-	public TabularDS filterColumns(List<String> columnNames, List<Integer> columnNumbers) {
-		return null;
-	}
-	
-	public Set<String> getUniqueValues(int colIndex) {
-		return null;
-	}
+	public int compare(List<String> a, List<String> b) { 
+        return a.get(index).compareTo(b.get(index));
+    }
 }

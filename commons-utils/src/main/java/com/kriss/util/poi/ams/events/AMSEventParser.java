@@ -1,8 +1,12 @@
-package com.kriss.util.poi.ams.issues;
+package com.kriss.util.poi.ams.events;
 
 import com.kriss.collection.adt.TabularDS;
-import com.kriss.util.poi.io.ExcelFileReader;
+import com.kriss.util.poi.ExcelFileReader;
 
+
+/**
+ * 
+ */
 public class AMSEventParser {
 
 	public static void main(String[] args) {

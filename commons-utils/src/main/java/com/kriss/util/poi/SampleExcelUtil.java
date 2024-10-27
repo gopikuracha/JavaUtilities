@@ -1,4 +1,4 @@
-package com.kriss.util.poi.io;
+package com.kriss.util.poi;
 
 import java.io.File;
 import java.io.FileInputStream;

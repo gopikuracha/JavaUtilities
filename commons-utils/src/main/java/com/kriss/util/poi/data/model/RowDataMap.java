@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
+
+/**
+ * 
+ */
 public class RowDataMap {
 	
 	public String identifier;
