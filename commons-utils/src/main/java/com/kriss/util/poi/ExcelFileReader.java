@@ -1,8 +1,8 @@
 package com.kriss.util.poi;
 
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,226 +18,37 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import com.kriss.collection.adt.ArrayListTDS;
-import com.kriss.collection.adt.DynamicTDS;
-import com.kriss.collection.adt.StaticTDS;
 import com.kriss.collection.adt.TDS;
-import com.kriss.collection.adt.TabularDS;
+import com.kriss.util.DateUtil;
 
+/**
+ * 
+ */
 public class ExcelFileReader {
 	
-	/**
-	 * @apiNote: 
-	 * @param fileName - Full path of the file
-	 * @param sheetNumber - Starts with 0
-	 * @param rows - Excluding the Headers
-	 * @param columns
-	 * @param hasHeader
-	 * @return
-	 */
-	public TabularDS readFileWithIterator(String fileName, int sheetNumber, int rows, int columns, boolean hasHeader, boolean dynamicTDS) {
-		TabularDS tds = null;
-		if (dynamicTDS) tds = new DynamicTDS(columns, true);
-		else tds = new StaticTDS(rows, columns, true);
-		
-		Workbook workbook = null;
-		FileInputStream inputStream = null;
-		try {
-			inputStream = new FileInputStream(fileName);
-			workbook = new XSSFWorkbook(inputStream);
-	        Sheet sheet = workbook.getSheetAt(sheetNumber);
-	        Iterator<Row> iterator = sheet.iterator();
-	        
-	        int i = 0;
-	        if(hasHeader) i = -1;
-	        while (iterator.hasNext()) {
-	            Row nextRow = iterator.next();
-	            Iterator<Cell> cellIterator = nextRow.cellIterator();
-	            
-	            int j = 0;
-	            while (cellIterator.hasNext()) {
-	                Cell cell = cellIterator.next();
-	                 
-	                switch (cell.getCellType()) {
-	                    case STRING:
-	                    	if(i == -1) tds.columnHeaders[j] = cell.getStringCellValue(); 
-	                    	else tds.setValue(i, j, cell.getStringCellValue());
-	                        break;
-	                    case BOOLEAN:
-	                    	if(i == -1) tds.columnHeaders[j] = Boolean.toString(cell.getBooleanCellValue());
-	                    	else tds.setValue(i, j, cell.getBooleanCellValue());
-	                        break;
-	                    case NUMERIC:
-	                    	Double cellVal = cell.getNumericCellValue();
-	                    	String str = Double.toString(cellVal);
-	                    	String value = str.substring(0, str.indexOf("."));
-	                    	if(i == -1) tds.columnHeaders[j] = value;
-	                    	else tds.setValue(i, j, value);
-	                        break;
-	                    default:
-	                    	if(i == -1) tds.columnHeaders[j] = null;
-	                    	else tds.setValue(i, j, null);
-	                }
-	                j++;
-	            }
-	            i++;
-	        }
-		} catch(Exception e) {
-			e.printStackTrace();
-		} finally {
-			try { if(workbook!=null) workbook.close(); } catch(IOException ioe) {ioe.printStackTrace();}
-			try { if(inputStream!=null) inputStream.close(); } catch(IOException ioe) {ioe.printStackTrace();}
-		}
-		return tds;
+	private boolean print;
+	
+	private boolean printStackTrace;
+
+	public void enablePrint() {
+		print = true;
 	}
 	
-	
-	/**
-	 * @apiNote: 
-	 * @param fileName - Full path of the file
-	 * @param sheetNumber - Starts with 0
-	 * @param rows - Excluding the Headers
-	 * @param columns
-	 * @param hasHeader
-	 * @return
-	 */
-	public TabularDS readFileWithIndex(String fileName, int sheetNumber, int rows, int columns, boolean hasHeader, boolean dynamicTDS) {
-		TabularDS tds = null;
-		if (dynamicTDS) tds = new DynamicTDS(columns, true);
-		else tds = new StaticTDS(rows, columns, true);
-		
-		Workbook workbook = null;
-		FileInputStream inputStream = null;
-		try {
-			inputStream = new FileInputStream(fileName);
-			workbook = new XSSFWorkbook(inputStream);
-	        Sheet sheet = workbook.getSheetAt(sheetNumber);
-	        
-	        if (hasHeader) rows++;
-	        for(int i=0; i < rows; i++) {
-	        	Row row = sheet.getRow(i);
-	        	
-	        	if (row == null) continue;
-	        	// if (hasHeader) i--;
-	        	
-	        	for(int j=0; j < columns; j++) {
-	        		Cell cell = row.getCell(j);
-	        		
-	        		if (cell == null) continue;
-	        		
-	        		switch (cell.getCellType()) {
-                    case STRING:
-                    	if(hasHeader) { 
-                    		if (i == 0) tds.columnHeaders[j] = cell.getStringCellValue();
-                    		else tds.setValue(i-1, j, cell.getStringCellValue());
-                    	}
-                    	else tds.setValue(i, j, cell.getStringCellValue());
-                        break;
-                    case BOOLEAN:
-                    	if(hasHeader) { 
-                    		if (i == 0) tds.columnHeaders[j] = Boolean.toString(cell.getBooleanCellValue());
-                    		else tds.setValue(i-1, j, cell.getBooleanCellValue());
-                    	}
-                    	else tds.setValue(i, j, cell.getBooleanCellValue());
-                        break;
-                    case NUMERIC:
-                    	Double cellVal = cell.getNumericCellValue();
-                    	String str = Double.toString(cellVal);
-                    	String value = str.substring(0, str.indexOf("."));
-                    	if(hasHeader) { 
-                    		if (i == 0) tds.columnHeaders[j] = cell.getStringCellValue();
-                    		else tds.setValue(i-1, j, value);
-                    	}
-                    	else tds.setValue(i, j, value);
-                        break;
-                    default:
-                    	if(hasHeader) { 
-                    		if (i == 0) tds.columnHeaders[j] = null;
-                    		else tds.setValue(i-1, j, null);
-                    	}
-                    	else tds.setValue(i, j, null);
-	        		}
-	        	}
-	        
-	        }
-		} catch(Exception e) {
-			e.printStackTrace();
-		} finally {
-			try { if(workbook!=null) workbook.close(); } catch(IOException ioe) {ioe.printStackTrace();}
-			try { if(inputStream!=null) inputStream.close(); } catch(IOException ioe) {ioe.printStackTrace();}
-		}
-		return tds;
+	public void disablePrint() {
+		print = false;
 	}
 	
-	
-	/**
-	 * @apiNote: 
-	 * @param fileName - Full path of the file
-	 * @param sheetNumber - Starts with 0
-	 * @param rows - Excluding the Headers
-	 * @param columns
-	 * @param hasHeader
-	 * @return
-	 */
-	public ArrayListTDS readFileWithIndex(String fileName, int sheetNumber, int rows, int columns, boolean hasHeader) {
-		ArrayListTDS tds = new ArrayListTDS();
-		tds.setSource(fileName);
-		List<List<String>> records = tds.getRecords();
-		List<String> columnHeaders = tds.getColumnHeaders();
-		
-		Workbook workbook = null;
-		FileInputStream inputStream = null;
-		try {
-			inputStream = new FileInputStream(fileName);
-			workbook = new XSSFWorkbook(inputStream);
-	        Sheet sheet = workbook.getSheetAt(sheetNumber);
-	        
-	        if (hasHeader) rows++;
-	        for(int i=0; i < rows; i++) {
-	        	Row row = sheet.getRow(i);
-	        	
-	        	if (row == null) { records.add(null); continue; }
-	        	List<String> record = new ArrayList<String>();
-	        	for(int j=0; j < columns; j++) {
-	        		Cell cell = row.getCell(j);
-	        		
-	        		if (hasHeader && i == 0) {
-	        			if (cell == null) columnHeaders.add(null);
-	        			else columnHeaders.add(cell.getStringCellValue());
-	        			continue;
-	        		} else if (cell == null) {
-	        			record.add(null); 
-	        			continue; 
-	        		}
-	        		
-	        		switch (cell.getCellType()) {
-                    case STRING:
-                    	record.add(cell.getStringCellValue());
-                        break;
-                    case BOOLEAN:
-                    	record.add(Boolean.toString(cell.getBooleanCellValue()));
-                        break;
-                    case NUMERIC:
-                    	Double cellVal = cell.getNumericCellValue();
-                    	String str = Double.toString(cellVal);
-                    	String value = str.substring(0, str.indexOf("."));
-                    	record.add(value);
-                        break;
-                    default:
-                    	record.add(null);
-	        		}
-	        	}
-	        	if (!(i == 0)) records.add(record);
-	        }
-		} catch(Exception e) {
-			e.printStackTrace();
-		} finally {
-			try { if(workbook!=null) workbook.close(); } catch(IOException ioe) {ioe.printStackTrace();}
-			try { if(inputStream!=null) inputStream.close(); } catch(IOException ioe) {ioe.printStackTrace();}
-		}
-		return tds;
+	public boolean isPrintStackTrace() {
+		return printStackTrace;
 	}
 	
+	public void enablePrintStackTrace() {
+		printStackTrace = true;
+	}
+	
+	public void disablePrintStackTrace() {
+		printStackTrace = false;
+	}
 	
 	/**
 	 * @apiNote: 
@@ -246,8 +57,20 @@ public class ExcelFileReader {
 	 * @param dateIndexes - Index starts with 0
 	 * @return
 	 */
-	public TDS<Object> readSheetWithHeader(String fileName, int sheetNumber, List<Integer> dateIndexes) {
-		return readSheetWithHeader(fileName, sheetNumber, 1, -1, dateIndexes);
+	public TDS<Object> readSheetWithHeader(String fileName, int sheetNumber, Map<Integer, String> dateIndexes) {
+		return readSheetWithHeader(fileName, sheetNumber, 1, -1, -1, dateIndexes);
+	}
+	
+	/**
+	 * @apiNote: 
+	 * @param fileName - Full path of the file
+	 * @param sheetNumber - Starts with 0
+	 * @param dateIndexes - Index starts with 0
+	 * @param processColumns - Number of Columns to process | Index starts with 0
+	 * @return
+	 */
+	public TDS<Object> readSheetWithHeader(String fileName, int sheetNumber, int processColumns, Map<Integer, String> dateIndexes) {
+		return readSheetWithHeader(fileName, sheetNumber, 1, -1, processColumns, dateIndexes);
 	}
 	
 	// TODO - Add Date Types to the TDS
@@ -257,15 +80,19 @@ public class ExcelFileReader {
 	 * @param sheetNumber - Starts with 0
 	 * @param startRowIndex - Actual Row number in the sheet, default value 1
 	 * @param endRowIndex - Actual Row number in the sheet, default value -1
+	 * @param processColumns - Number of Columns to process, default value -1
+	 * @param dateIndexes - Index starts with 0
 	 * @return
 	 */
-	public TDS<Object> readSheetWithHeader(String fileName, int sheetNumber, int startRowIndex, int endRowIndex, List<Integer> dateIndexes) {
+	public TDS<Object> readSheetWithHeader(String fileName, int sheetNumber, int startRowIndex, int endRowIndex, int processColumns, Map<Integer, String> dateIndexes) {
 		TDS<Object> tds = new TDS<Object>();
 		
 		List<List<Object>> records = tds.getRecords();
 		List<String> columnHeaders = tds.getColumnHeaders();
-		List<String> columnTypes = tds.getColumnTypes();
+		Map<String, String> columnTypes = tds.getColumnTypes();
+		Map<String, String> dateFormats = tds.getDateFormats();
 		
+		if (fileName !=null && !fileName.contains(".xlsx")) fileName = fileName+".xlsx";
 		Workbook workbook = null;
 		FileInputStream inputStream = null;
 		try {
@@ -277,12 +104,23 @@ public class ExcelFileReader {
 	        tds.setSource("Version:" + workbook.getSpreadsheetVersion() + ", File:" + fileName 
 	        		+ ", Sheet:" + sheet.getSheetName() + ", # of Sheets:" + workbook.getNumberOfSheets());
 	        
+	        if (print) System.out.println("readSheetWithHeader: TDS Source set...");
+	        
 	        Row headerRow = sheet.getRow(0 + startRowIndex - 1);
 	        int columns = headerRow.getLastCellNum();
+	        if (processColumns != -1) columns = processColumns;
 	        for (int col=0; col<columns; col++) {
 	        	Cell cell = headerRow.getCell(col);
 	        	if (cell != null) columnHeaders.add(cell.getStringCellValue());
 	        	else columnHeaders.add(null);
+	        }
+	        
+	        if (dateIndexes != null) {
+	        	for (Integer dateX : dateIndexes.keySet()) {
+		        	dateFormats.put(columnHeaders.get(dateX), dateIndexes.get(dateX));
+					columnTypes.put(columnHeaders.get(dateX), "DATE");
+					if (print) System.out.println("readSheetWithHeader: Date Indexes set for: " + dateX);
+				}
 	        }
 	        
 	        int rows = sheet.getPhysicalNumberOfRows();
@@ -294,10 +132,10 @@ public class ExcelFileReader {
 	        	for(int j=0; j<columns; j++) {
 	        		Cell cell = row.getCell(j);
 	        		Object obj = null;
-	        		if (dateIndexes != null && dateIndexes.contains(j+1)) {
-	        			obj = extractValueFromCell(cell, evaluator, false, true);
+	        		if (dateIndexes != null && dateIndexes.keySet() != null && dateIndexes.keySet().contains(j)) {
+	        			obj = extractValueFromCell(tds, cell, evaluator, false, true, dateIndexes.get(j), i, j);
 	        		}
-	        		else obj = extractValueFromCell(cell, evaluator, true, false);
+	        		else obj = extractValueFromCell(tds, cell, evaluator, true, false, null, i, j);
 	        		record.add(obj);
 	        	}
 	        	records.add(record);
@@ -309,6 +147,7 @@ public class ExcelFileReader {
 			try { if(workbook!=null) workbook.close(); } catch(IOException ioe) {ioe.printStackTrace();}
 			try { if(inputStream!=null) inputStream.close(); } catch(IOException ioe) {ioe.printStackTrace();}
 		}
+		if (print) System.out.println("readSheetWithHeader: Finished processing file...");
 		return tds;
 	}
 	
@@ -391,10 +230,7 @@ public class ExcelFileReader {
 		}
 	}
 	
-	private Object extractDateFromCell(Cell cell) {
-		if (cell == null) return null;
-		return cell.getDateCellValue();
-	}
+
 	
 	private Object extractValueFromCell(Cell cell, boolean string, boolean date) {
 		if (cell == null) return null;
@@ -426,10 +262,21 @@ public class ExcelFileReader {
 		}
 	}
 	
-	private Object extractValueFromCell(Cell cell, FormulaEvaluator evaluator, boolean string, boolean date) {
+	
+	private Object extractValueFromCell(TDS<Object> tds, Cell cell, FormulaEvaluator evaluator, boolean string, boolean date, String dateFormat, int i, int j) {
 		if (cell == null) return null;
 		switch (cell.getCellType()) {
         case STRING:
+        	if (date) {
+        		String cellValue = cell.getStringCellValue();
+        		if (print) System.out.println("[" + i + "," + j + "] Inside STRING case: " + cellValue);
+        		Date newDate = DateUtil.determineAndGetDateFromString(cellValue, dateFormat);
+        		if (newDate == null) {
+        			tds.updateWarnings("Unable to parse date - " + "[" + i + "," + j + "]" + " - " + cell.getStringCellValue());
+        			return cellValue;
+        		}
+        		return newDate;
+        	}
         	return cell.getStringCellValue();
         case BOOLEAN:
         	if (string) return Boolean.toString(cell.getBooleanCellValue());
@@ -440,13 +287,17 @@ public class ExcelFileReader {
         		if (string) {
         			LocalDateTime dateTime = cell.getLocalDateTimeCellValue();
             		if (dateTime != null) return dateTime.toString();
-        		} else return cell.getDateCellValue();
+        		} else {
+        			if (print) System.out.println("[" + i + "," + j + "] Inside NUMERIC case: " + cell.getNumericCellValue() + " Long: " + (long)cell.getNumericCellValue());
+        			Date newdate = new Date((long)cell.getNumericCellValue());
+        			return newdate;
+        		}
         		
         	} else {
-        		Double cellVal = cell.getNumericCellValue();
+        		Long cellVal = (long) cell.getNumericCellValue();
         		if (string) {
-        			String str = Double.toString(cellVal);
-                	return str.substring(0, str.indexOf("."));
+        			String str = Long.toString(cellVal);
+                	return str;
         		}
         		else return cellVal;
         	}
@@ -456,8 +307,9 @@ public class ExcelFileReader {
         	String strValue = null;
         	try {
         		strValue = formatter.formatCellValue(cell, evaluator);
+        		if (print) System.out.println("[" + i + "," + j + "] Inside FORMULA case: " + strValue);
         	} catch (Exception e) {
-        		//e.printStackTrace();
+        		e.printStackTrace();
         	}
         	return strValue;
         default:

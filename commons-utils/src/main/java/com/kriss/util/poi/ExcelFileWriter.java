@@ -1,21 +1,44 @@
 package com.kriss.util.poi;
 
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import com.kriss.collection.adt.TDS;
 import com.kriss.util.poi.ams.model.LogLine;
+import com.kriss.collection.adt.TDS;
 
 public class ExcelFileWriter {
 
+	
+	/**
+	 * @apiNote: Careful - Overwrites the existing File, if file already exist
+	 * @param fileName - Full path of the file
+	 * @return
+	 */
+	public void writeSheetToNewFile(TDS<Object> tds, String fileName, String sheetName) {
+		writeSheet(tds, fileName, sheetName, true);
+	}
+	
+	
+	/**
+	 * @apiNote: Ignores the write if the Sheet name already exist in the existing File
+	 * @param fileName - Full path of the file
+	 * @return
+	 */
+	public void writeSheetToExistingFile(TDS<Object> tds, String fileName, String sheetName) {
+		writeSheet(tds, fileName, sheetName, false);
+	}
+	
 	
 	/**
 	 * @apiNote: 
@@ -23,17 +46,40 @@ public class ExcelFileWriter {
 	 * @param sheetNumber - Starts with 0
 	 * @return
 	 */
-	public void writeSheetToExcelFile(TDS<Object> tds, String fileName, String sheetName) {
+	public void writeSheet(TDS<Object> tds, String fileName, String sheetName, boolean newFile) {
 		if (tds == null) { System.out.println("TDS is null"); return; }
 		Workbook workbook = null;
+		CreationHelper creationHelper = null;
+		Sheet sheet = null;
+		FileInputStream inputStream = null;
 		FileOutputStream outputStream = null;
+        
 		try {
-			workbook = new XSSFWorkbook();
-	        Sheet sheet = workbook.createSheet(sheetName);
+			if (newFile) { 
+				workbook = new XSSFWorkbook();
+				sheet = workbook.createSheet(sheetName);
+			}
+			else {
+				inputStream = new FileInputStream(fileName);
+				workbook = new XSSFWorkbook(inputStream);
+				if (workbook.getSheetIndex(sheetName) == -1) sheet = workbook.createSheet(sheetName);
+				else {
+					System.out.println("Sheet already exist");
+					return;
+				}
+			}
+			
+			creationHelper = workbook.getCreationHelper();
+			CellStyle dateCellStyle = workbook.createCellStyle();
+	        dateCellStyle.setDataFormat(
+	                creationHelper.createDataFormat().getFormat("yyyy-MM-dd hh:mm:ss") // Excel date format
+	        );
+	        
 	        outputStream = new FileOutputStream(fileName);
 	        
 	        List<String> columnHeaders = tds.getColumnHeaders();
 	        Row headerRow = sheet.createRow(0);
+	        
 	        for (int i=0; i<columnHeaders.size(); i++) {
 	        	Cell headerCell = headerRow.createCell(i);
 	        	headerCell.setCellValue(columnHeaders.get(i));
@@ -49,17 +95,27 @@ public class ExcelFileWriter {
 	        		Cell cell = recordRow.createCell(j);
 	        		if (obj != null) { 
 	        			if (obj instanceof String) cell.setCellValue((String) obj);
-	        			if (obj instanceof Date) cell.setCellValue((Date) obj);
+	        			if (obj instanceof Date) {
+	        				
+	        				cell.setCellValue((Date) obj);
+	        				cell.setCellStyle(dateCellStyle);
+	        			}
 	        			if (obj instanceof Boolean) cell.setCellValue((Boolean) obj);
 	        			if (obj instanceof Double) cell.setCellValue((Double) obj);
 	        		}
 	        	}
 	        }
+	        
+	        for (int i=0; i<columnHeaders.size(); i++) {
+	        	sheet.autoSizeColumn(i);
+	        }
+	        
 	        workbook.write(outputStream);
 		} catch(Exception e) {
 			e.printStackTrace();
 		} finally {
 			try { if(workbook!=null) workbook.close(); } catch(IOException ioe) {ioe.printStackTrace(); }
+			try { if(inputStream!=null) inputStream.close(); } catch(IOException ioe) {ioe.printStackTrace();}
 			try { if(outputStream!=null) outputStream.close(); } catch(IOException ioe) {ioe.printStackTrace(); }
 		}
 	}

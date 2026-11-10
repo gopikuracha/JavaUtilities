@@ -1,6 +1,7 @@
 package com.kriss.util.poi.ams.model;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +30,7 @@ public class LogLine {
 	public String requestHeaders;
 	public String requestBody;
 	
-	public Map<String, String> dataMap;
+	public Map<String, String> dataMap = new HashMap<String, String>();
 	
 	// The kubernetes.pod.name in the log
 	public String podName;
@@ -202,12 +203,13 @@ public class LogLine {
 
 	@Override
 	public String toString() {
-		return "LogLine [estTimeStamp=" + estTimeStamp + ", utcTimeInMessage="
+		return "LogLine [estTimeStamp=" + estTimeStamp + ", rawMessage=" + rawMessage + ", utcTimeInMessage="
 				+ utcTimeInMessage + ", threadNum=" + threadNum + ", coid=" + coid + ", logLevel=" + logLevel
-				+ ", className=" + className + ", logMessage=" + logMessage
+				+ ", className=" + className + ", messageAfter=" + messageAfter + ", logMessage=" + logMessage
 				+ ", vin=" + vin + ", vehicleId=" + vehicleId + ", localRequestId=" + localRequestId + ", httpMethod="
 				+ httpMethod + ", uri=" + uri + ", requestHeaders=" + requestHeaders + ", requestBody=" + requestBody
 				+ ", dataMap=" + dataMap + ", podName=" + podName + ", serviceName=" + serviceName + ", comments="
 				+ comments + "]";
 	}
+
 }

@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
@@ -11,6 +12,10 @@ import java.util.TimeZone;
 import org.apache.commons.lang3.StringUtils;
 
 public class StringUtil {
+	
+	// Syntaxes
+	// String[] cols = {"No.", "Incident ID", "Title", "Status", "Assignment Group", "Priority"};
+	// for (String col : cols) IR_Columns.add(col);
 	
 	public static void main(String[] args) {
 		
@@ -46,6 +51,16 @@ public class StringUtil {
 		System.out.println(Arrays.asList(strs));
 	}
 	
+	public static void concatStringList(List<Object> strs, String delimiter) {
+		String result = null;
+		for (Object strObj: strs) {
+			String str = (String) strObj;
+			if (result == null) result = str;
+			else result = result + delimiter + str;
+		}
+		System.out.println(result);
+	}
+	
 	public static Long convertStringDateToUTC(String timestampString) {
 		Long epochMs = null;
 		if(!StringUtils.isBlank(timestampString)) {
@@ -70,5 +85,16 @@ public class StringUtil {
 			}
 		}
 		return 0L;
+	}
+	
+	public static String getSubStringWithSearchKeys(String searchString, String searchKey, String searchEndKey) {
+		String result = null;
+		if (searchString !=null && searchString.contains(searchKey)) {
+        	int length = searchKey.length();
+        	int startIndex = searchString.indexOf(searchKey);
+        	result = searchString.substring(startIndex+length);
+        	if (searchEndKey != null) result = result.substring(0, result.indexOf(searchEndKey));
+        }
+		return result;
 	}
 }

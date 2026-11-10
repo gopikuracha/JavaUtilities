@@ -13,21 +13,37 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import com.kriss.util.DateUtil;
+import com.kriss.util.PrintUtil;
 
 public class TDS<T> {
 	
 	private String defaultDateFormat = "MM-dd-yyyy HH:mm:ss";
 	
 	/**
-	 * 	The name of the Input source
+	 * 	Input source name
 	 */
 	protected String source;
 	
 	/**
-	 * 	The name of the Input source
+	 * 	Transaction History of TDS
 	 */
 	protected String transHistory;
 	
+	/**
+	 * 	Warnings while processing TDS
+	 */
+	protected String warnings;
+	
+	/**
+	 * 	Parameter to enable print for TDS data
+	 */
+	protected boolean print;
+	
+	/**
+	 * 	Parameter to enable debug for each TDS transaction
+	 */
+	protected boolean debug;
+
 	/**
 	 * 	boolean value if table has Headers
 	 */
@@ -39,20 +55,24 @@ public class TDS<T> {
 	protected List<String> columnHeaders;
 	
 	/**
-	 * 	The table Column Headers
+	 * 	The table Column Header Types
 	 */
-	protected List<String> columnTypes;
+	protected Map<String, String> columnTypes;
 	
 	/**
 	 * 	The table Values
 	 */
 	protected List<List<T>> records;
 	
+	
 	/**
-	 * 	Custom date formats for toString() method
+	 * 	The date formats of the Column Headers
+	 * 		- Used for 
+	 * 		- Used for toString() method
 	 */
 	protected Map<String, String> dateFormats;
 
+	
 	public int rows() {
 		return records.size();
 	}
@@ -77,6 +97,38 @@ public class TDS<T> {
 		this.transHistory = transHistory;
 	}
 	
+	public String getWarnings() {
+		return warnings;
+	}
+
+	public void setWarnings(String warnings) {
+		this.warnings = warnings;
+	}
+
+	public boolean isPrint() {
+		return print;
+	}
+
+	public void enablePrint() {
+		this.print = true;
+	}
+	
+	public void disablePrint() {
+		this.print = false;
+	}
+	
+	public boolean isDebug() {
+		return debug;
+	}
+
+	public void enableDebug() {
+		this.debug = true;
+	}
+	
+	public void disableDebug() {
+		this.debug = false;
+	}
+	
 	public void updateTransHistory(String transHistory, String update) {
 		if (transHistory == null ) this.transHistory = "\t" + update;
 		else this.transHistory = transHistory + "\n" + "\t" + update;
@@ -86,6 +138,16 @@ public class TDS<T> {
 		if (transHistory == null ) this.transHistory = "\t" + update;
 		else this.transHistory = transHistory + "\n" + "\t" + update;
 		if (secondTransHistory != null) this.transHistory = this.transHistory + "\n" + secondTransHistory;
+	}
+	
+	public void updateWarnings(String update) {
+		if (warnings == null ) this.warnings = "\t" + update;
+		else this.warnings = warnings + "\n" + "\t" + update;
+	}
+	
+	public void updateWarnings(String warnings, String update) {
+		if (warnings == null ) this.warnings = "\t" + update;
+		else this.warnings = warnings + "\n" + "\t" + update;
 	}
 
 	public boolean isHasHeaders() {
@@ -106,12 +168,14 @@ public class TDS<T> {
 		if (columnHeaders.size() == 0) columnHeaders.addAll(columns);
 	}
 
-	public List<String> getColumnTypes() {
+	public Map<String, String> getColumnTypes() {
 		return columnTypes;
 	}
 
-	public void setColumnTypes(List<String> columnTypes) {
-		this.columnTypes = columnTypes;
+	// Understand the purpose of this method
+	public void setColumnTypes(Map<String, String> types) {
+		if (types == null || types.size() == 0) return;
+		if (columnTypes.size() == 0) columnTypes.putAll(types);
 	}
 
 	public List<List<T>> getRecords() {
@@ -142,6 +206,7 @@ public class TDS<T> {
 	public TDS() {
 		records = new ArrayList<List<T>>();
 		columnHeaders = new ArrayList<String>();
+		columnTypes = new HashMap<String, String>();
 		dateFormats = new HashMap<String, String>();
 	}
 	
@@ -234,11 +299,11 @@ public class TDS<T> {
 	 * Options:
 	 * 		With Column Name (Case sensitive ?)
 	 */
-	public List<Object> getColumnData(String columnName) {
+	public List<Object> getColumnData(String columnName, boolean includeHeader) {
 		int colIndex = 0;
 		if (columnName == null) return null;
 		colIndex = columnHeaders.indexOf(columnName);
-		return getColumnData(colIndex, columnName);
+		return getColumnData(colIndex, columnName, includeHeader);
 	}
 	
 	/**
@@ -246,17 +311,17 @@ public class TDS<T> {
 	 * Options:
 	 * 		With Column Index (starts with 1)
 	 */
-	public List<Object> getColumnData(int colIndex) {
+	public List<Object> getColumnData(int colIndex, boolean includeHeader) {
 		if (colIndex > columnHeaders.size()) {
 			System.out.println("colIndex is greater than the TDS Columns size.");
 			return null;
 		}
 		String columnName = null;
 		columnName = columnHeaders.get(colIndex-1);
-		return getColumnData(colIndex-1, columnName);
+		return getColumnData(colIndex-1, columnName, includeHeader);
 	}
 	
-	private List<Object> getColumnData(int colIndex, String columnName) {
+	private List<Object> getColumnData(int colIndex, String columnName, boolean includeHeader) {
 		List<Object> columnData = null;
 		if (colIndex == -1) {
 			System.out.println("No matching Column Headers found.");
@@ -267,18 +332,31 @@ public class TDS<T> {
 			return null;
 		}
 		columnData = new ArrayList<Object>();
-		columnData.add(columnName);
+		if (includeHeader) columnData.add(columnName);
 		Iterator<List<T>> itr = records.iterator();
 		while (itr.hasNext()) {
 			List<T> record = itr.next();
 			if (record == null) columnData.add(null);
 			else columnData.add(record.get(colIndex));
 		}
+		if (print) System.out.println("[PRINT] Column Data for the Column - " + columnName + ": " + columnData);
 		return columnData;
 	}
 	
 	/**
+	 * Table feature: Add/Insert a new DUMMY Column at the end
+	 * Options:
+	 * 		With new Column Name
+	 */
+	public void addNewColumn(String columnName) {
+		columnHeaders.add(columnName);
+		updateTransHistory(transHistory, "- Added new Dummy Column at the end: " + columnName);
+	}
+	
+	/**
 	 * Table feature: Add/Insert a new Column at the end
+	 * Options:
+	 * 		With new Column Data
 	 */
 	public boolean addNewColumn(List<T> columnData) {
 		return addNewColumnWithIndex(columnData, 0);
@@ -286,7 +364,9 @@ public class TDS<T> {
 	
 	/**
 	 * Table feature: Add/Insert a new Column
-	 * 		(colIndex = 0) for Add; (colIndex = insert Index, starts with 1) for Insert;
+	 * Options:
+	 * 		With new Column Data
+	 * 		Index: (colIndex = 0) for Add; (colIndex = insert Index, starts with 1) for Insert;
 	 */
 	public boolean addNewColumnWithIndex(List<T> columnData, int colIndex) {
 		colIndex = colIndex-1;
@@ -311,8 +391,157 @@ public class TDS<T> {
 			if (colIndex == -1) record.add(obj);
 			else record.add(colIndex, obj);
 		}
+		if (debug) System.out.println("[DEBUG] Added new Column " + columnName);
 		return true;
 	}
+	
+	/**
+	 * Table feature: Delete a Column
+	 * Options:
+	 * 		With Column Name
+	 */
+	public boolean deleteColumn(String columnName) {
+		if (records.size() == 0) return false;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return false;
+		}
+		
+		for (int i=0; i<rows(); i++) {
+			List<T> record = records.get(i);
+			if (record == null) continue;
+			record.remove(colIndex);
+		}
+		columnHeaders.remove(colIndex);
+		dateFormats.remove(columnName);
+		columnTypes.remove(columnName);
+		updateTransHistory(transHistory, "- Deleted Column: " + columnName);
+		return true;
+	}
+	
+	/**
+	 * Table feature: Generate a new Column
+	 * @apiNote Generate a new Column by identifying a sub string in the Column data
+	 * @param sourceColName
+	 * @param destColName
+	 * @param searchKey - The string to look for in the Column
+	 * @param searchEndKey - The key to identify the end of the String
+	 * @param fixedLength - The length of the data, when there is no end key
+	 */
+	public boolean generateNewStringColumnFromColumnData(String sourceColName, String destColName, String searchKey, String searchEndKey, int fixedLength) {
+		if (records.size() == 0) return false;
+		if (searchKey == null) return false;
+		int colIndex = columnHeaders.indexOf(sourceColName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + sourceColName);
+			return false;
+		}
+		
+		columnHeaders.add(destColName);
+		updateTransHistory(transHistory, "- Generated new Column with " + searchKey + ": " + destColName);
+
+		for (int i=0; i<rows(); i++) {
+			List<T> record = records.get(i);
+			if (record == null) continue;
+			String col = (String) record.get(colIndex);
+			//System.out.println("Column Data: " + col);
+			
+			T obj = null;
+			if (col != null) {
+				if (col.contains(searchKey)) {
+					String newCol = col.substring(col.indexOf(searchKey));
+					if (searchEndKey != null) {
+						if (newCol.contains(searchEndKey)) {
+							obj = (T) newCol.substring(searchKey.length(), newCol.indexOf(searchEndKey));
+						}
+					} else {
+						obj = (T) newCol.substring(searchKey.length(), searchKey.length()+fixedLength);
+					}
+					
+				}
+			}
+			record.add(obj);
+		}
+		if (debug) System.out.println("[DEBUG] Generated new Column " + destColName + " from " + sourceColName + " with " + searchKey);
+		return true;
+	}
+	
+	
+	/**
+	 * Table feature: Generate a new Column
+	 * @apiNote Generate a new Column, split by delimiter
+	 * @param sourceColName
+	 * @param destColName
+	 * @param delimiter
+	 * @param subStringIndex - The index of delimited string in the split array
+	 */
+	public boolean generateNewStringColumnFromColumnData(String sourceColName, String destColName, String delimiter, int subStringIndex) {
+		if (records.size() == 0) return false;
+		if (delimiter == null) return false;
+		int colIndex = columnHeaders.indexOf(sourceColName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + sourceColName);
+			return false;
+		}
+		
+		columnHeaders.add(destColName);
+		updateTransHistory(transHistory, "- Generated new Column split by \"" + delimiter + "\" : " + destColName);
+
+		for (int i=0; i<rows(); i++) {
+			List<T> record = records.get(i);
+			if (record == null) continue;
+			String col = (String) record.get(colIndex);
+			//System.out.println("Column Data: " + col);
+			
+			T obj = null;
+			if (col != null) {
+				String[] tokens = col.split(delimiter);
+				if (tokens != null) {
+					if (subStringIndex < tokens.length) obj = (T) tokens[subStringIndex].trim();
+				}
+			}
+			record.add(obj);
+		}
+		if (debug) System.out.println("[DEBUG] Generated new Column " + destColName + " from " + sourceColName + " split by \"" + delimiter + "\"");
+		return true;
+	}
+	
+	
+	/**
+	 * Table feature: Generate a new Column
+	 * @apiNote Generate a new Column, replace the column values, based on the input values
+	 * @param sourceColName
+	 * @param destColName
+	 * @param Map of data pairs to replace
+	 */
+	public boolean generateNewStringColumnFromColumnData(String sourceColName, String destColName, Map<String,String> data) {
+		if (records.size() == 0) return false;
+		if (data == null) return false;
+		int colIndex = columnHeaders.indexOf(sourceColName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + sourceColName);
+			return false;
+		}
+		
+		columnHeaders.add(destColName);
+		updateTransHistory(transHistory, "- Generated new Column replaced by input values : " + destColName);
+
+		for (int i=0; i<rows(); i++) {
+			List<T> record = records.get(i);
+			if (record == null) continue;
+			String col = (String) record.get(colIndex);
+			//System.out.println("Column Data: " + col);
+			
+			T obj = null;
+			if (data.containsKey(col)) obj = (T) data.get(col);
+			
+			record.add(obj);
+		}
+		if (debug) System.out.println("[DEBUG] Generated new Column " + destColName + " from " + sourceColName + " replaced by input values");
+		return true;
+	}
+	
 	
 	/**
 	 * Table feature: Generate a new Column
@@ -353,10 +582,12 @@ public class TDS<T> {
 			if (newColIndex == -1) record.add(newDate);
 			else record.add(newColIndex, newDate);
 		}
-		updateTransHistory(transHistory, "- Generated new Date Column: " + newColumnName);
+		updateTransHistory(transHistory, "- Generated new Date Column " + newColumnName + " from " + columnName);
 		if (newColIndex == -1) columnHeaders.add(newColumnName);
 		else columnHeaders.add(newColIndex, newColumnName);
 		dateFormats.put(newColumnName, dateFormat);
+		columnTypes.put(newColumnName, "DATE");
+		if (debug) System.out.println("[DEBUG] Generated new Date Column " + newColumnName + " from " + columnName);
 		return true;
 	}
 	
@@ -377,6 +608,7 @@ public class TDS<T> {
 				records.add(record);
 			}
 		} else return false;
+		if (debug) System.out.println("[DEBUG] Merged data... ");
 		return true;
 	}
 	
@@ -609,10 +841,109 @@ public class TDS<T> {
 			List<T> record = itr.next();
 			if (record == null) continue;
 			for (String filterValue : filterValues) {
-				String recordValue = (String) record.get(colIndex);
-				if (recordValue.contains(filterValue)) {
-					getTDS.getRecords().add(record);
-					break;
+				Object obj = record.get(colIndex);
+				if (obj != null) {
+					String recordValue = (String) obj;
+					if (recordValue.contains(filterValue)) {
+						getTDS.getRecords().add(record);
+						break;
+					}
+				}
+			}
+		}
+		return getTDS;
+	}
+	
+	/**
+	 * Table feature: Get Filtered Rows for specific Column values that Begins with
+	 * Options:
+	 * 		With Column Name
+	 * 		Multiple Filter Value - Begins with search
+	 */
+	public TDS<T> getFilteredRecordsWithBeginsWithSearch(String columnName, List<String> filterValues) {
+		if (columnName == null) return null;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return null;
+		}
+		return getFilteredRecordsWithBeginsWithSearch(colIndex+1, filterValues);
+	}
+	
+	/**
+	 * Table feature: Get Filtered Rows for specific Column values that Begins with
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 * 		Multiple Filter Value - Begins with search
+	 */
+	public TDS<T> getFilteredRecordsWithBeginsWithSearch(int colIndex, List<String> filterValues) {
+		colIndex = colIndex-1;
+		if (filterValues == null || filterValues.size() == 0) return null;
+		TDS<T> getTDS = new TDS<T>();
+		getTDS.setSource(source);
+		getTDS.updateTransHistory(transHistory, "- Filtered Column: " + columnHeaders.get(colIndex) + " with Begins with Search values(s): " + filterValues);
+		getTDS.setColumnHeaders(columnHeaders);
+		
+		Iterator<List<T>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<T> record = itr.next();
+			if (record == null) continue;
+			for (String filterValue : filterValues) {
+				Object obj = record.get(colIndex);
+				if (obj != null) {
+					String recordValue = (String) obj;
+					if (recordValue.startsWith(filterValue)) {
+						getTDS.getRecords().add(record);
+						break;
+					}
+				}
+			}
+		}
+		return getTDS;
+	}
+	
+	/**
+	 * Table feature: Get Filtered Rows for specific Column values that Ends with
+	 * Options:
+	 * 		With Column Name
+	 * 		Multiple Filter Value - Ends with search
+	 */
+	public TDS<T> getFilteredRecordsWithEndsWithSearch(String columnName, List<String> filterValues) {
+		if (columnName == null) return null;
+		int colIndex = columnHeaders.indexOf(columnName);
+		if (colIndex == -1) {
+			System.out.println("Did not find the Column with Name: " + columnName);
+			return null;
+		}
+		return getFilteredRecordsWithEndsWithSearch(colIndex+1, filterValues);
+	}
+	
+	/**
+	 * Table feature: Get Filtered Rows for specific Column values that Ends with
+	 * Options:
+	 * 		With Column Index (starts with 1)
+	 * 		Multiple Filter Value - Ends with search
+	 */
+	public TDS<T> getFilteredRecordsWithEndsWithSearch(int colIndex, List<String> filterValues) {
+		colIndex = colIndex-1;
+		if (filterValues == null || filterValues.size() == 0) return null;
+		TDS<T> getTDS = new TDS<T>();
+		getTDS.setSource(source);
+		getTDS.updateTransHistory(transHistory, "- Filtered Column: " + columnHeaders.get(colIndex) + " with Ends with Search values(s): " + filterValues);
+		getTDS.setColumnHeaders(columnHeaders);
+		
+		Iterator<List<T>> itr = records.iterator();
+		while (itr.hasNext()) {
+			List<T> record = itr.next();
+			if (record == null) continue;
+			for (String filterValue : filterValues) {
+				Object obj = record.get(colIndex);
+				if (obj != null) {
+					String recordValue = (String) obj;
+					if (recordValue.endsWith(filterValue)) {
+						getTDS.getRecords().add(record);
+						break;
+					}
 				}
 			}
 		}
@@ -769,6 +1100,7 @@ public class TDS<T> {
 				} else results.add(value);
 			}
 		}
+		if (print) System.out.println("[PRINT] Unique values for the Column - " + columnName + "(" + results.size() + "): " + results);
 		return results;
 	}
 	
@@ -806,6 +1138,7 @@ public class TDS<T> {
 				filterCount++;
 			}
 		}
+		if (print) System.out.println("[PRINT] Count of records for the Column - " + columnHeaders.get(colIndex) + ": " + filterCount + " when filtered with - " + filterValue);
 		return filterCount;
 	}
 	
@@ -843,6 +1176,7 @@ public class TDS<T> {
 				filterCount++;
 			}
 		}
+		if (print) System.out.println("[PRINT] Count of records for the Column - " + columnHeaders.get(colIndex) + ": " + filterCount + " when filtered with - " + filterValues);
 		return filterCount;
 	}
 	
@@ -876,6 +1210,7 @@ public class TDS<T> {
 				nullCount++;
 			}
 		}
+		if (print) System.out.println("[PRINT] Count of Null records for the Column - " + columnHeaders.get(colIndex) + ": " + nullCount);
 		return nullCount;
 	}
 	
@@ -923,7 +1258,9 @@ public class TDS<T> {
 			if (skipColumns != null && skipColumns.contains(column)) continue;
 			builder.append("\n" + getRecordsSplitByAColumn(column) + "\n");
 		}
-		return builder.append("----- Data Overview End -----").toString();
+		builder.append("----- Data Overview End -----");
+		if (print) System.out.println("[PRINT] " + builder.toString());
+		return builder.toString();
 	}
 	
 	/**
@@ -931,13 +1268,33 @@ public class TDS<T> {
 	 * Options:
 	 * 		Ignore the Columns that are not required in the Overview
 	 */
-	public String getSpecificColumnDataOverview(List<String> columns) {
+	public String getDataOverviewForSpecificColumns(List<String> columns) {
 		StringBuilder builder = new StringBuilder("--------- Data Overview Start ---------");
 		for (String column : this.columnHeaders) {
 			if (columns != null && columns.contains(column)) builder.append("\n" + getRecordsSplitByAColumn(column) + "\n");
 		}
-		return builder.append("----- Data Overview End -----").toString();
+		builder.append("----- Data Overview End -----");
+		if (print) System.out.println("[PRINT] " + builder.toString());
+		return builder.toString();
 	}
+	
+	
+	/**
+	 * Returns a String of the Split data of a Column, for each unique record of a specific Column 
+	 * Options:
+	 * 		Ignore the Columns that are not required in the Overview
+	 */
+	public String getColumnDataSplitOverviewForEachColumnValueOfAPrimaryColumn(String primaryColumnName, String secondaryColumnName) {
+		StringBuilder builder = new StringBuilder("--------- Primary/Secondary Data Overview Start ---------");
+		Set<Object> uniqueVals = getUniqueValues(primaryColumnName);
+		for (Object val : uniqueVals) {
+			builder.append("\n" + primaryColumnName +": " + val + "\n" + getFilteredRecords(primaryColumnName, val).getRecordsSplitByAColumn(secondaryColumnName) + "\n");
+		}
+		builder.append("----- Primary/Secondary Data Overview End -----");
+		if (print) System.out.println("[PRINT] " + builder.toString());
+		return builder.toString();
+	}
+	
 	
 	/**
 	 * Returns a String of the records split by a specific Column
@@ -945,7 +1302,14 @@ public class TDS<T> {
 	 */
 	public String getRecordsSplitByAColumn(String columnName) {
 		if (columnName == null) return null;
-		StringBuilder builder = new StringBuilder("Split Column: " + columnName);
+		StringBuilder builder = new StringBuilder("Split by, " + columnName);
+		
+		boolean printDisabled = false;
+		if (print) {
+			disablePrint();
+			printDisabled = true;
+		}
+		
 		if (rows() != 0) {
 			int dataCount = 0; 
 			for (Object columnValue : getUniqueValues(columnName)) {
@@ -959,16 +1323,26 @@ public class TDS<T> {
 			}
 			if (rows() != dataCount) builder.append("\n" + "\t" + "NULL" + ": " + getNullRecordsCount(columnName));
 		} else builder.append("\n" + "Found empty results.");
+		
+		if(printDisabled) enablePrint();
+		if (print) System.out.println("[PRINT] " + builder.toString());
 		return builder.toString();
 	}
 	
 	/**
 	 * Returns a Map of the records split by a specific Column
-	 * 
+	 * TODO - What is the purpose of the String Builder here ?
 	 */
 	public Map<String, Integer> getMapOfRecordsSplitByAColumn(String columnName) {
 		if (columnName == null) return null;
 		StringBuilder builder = new StringBuilder(transHistory + "\n" + "\t" + "- Split Column: " + columnName);
+		
+		boolean printDisabled = false;
+		if (print) {
+			disablePrint();
+			printDisabled = true;
+		}
+		
 		Map<String, Integer> results = new LinkedHashMap<String, Integer>();
 		if (rows() != 0) {
 			int dataCount = 0; 
@@ -984,6 +1358,9 @@ public class TDS<T> {
 				builder.append("\n" + "\t" + "NULL: " + nullCount);
 			}
 		} else builder.append("\n" + "Found empty results.");
+		
+		if(printDisabled) enablePrint();
+		if (print) PrintUtil.printAMap(columnName, results);
 		return results;
 	}
 	
@@ -1011,6 +1388,8 @@ public class TDS<T> {
 		SortTDSWithColIndex3<T> comparator = new SortTDSWithColIndex3<T>(colIndex);
 		if (asc) Collections.sort(getRecords(), comparator);
 		else Collections.sort(getRecords(), Collections.reverseOrder(comparator));
+		updateTransHistory(transHistory, "- Sorted data with Column: " + columnHeaders.get(colIndex) + " ASC: " + asc);
+		if (debug) System.out.println("Sorted data with Column: " + columnHeaders.get(colIndex) + " ASC: " + asc);
 	}
 	
 	// TODO - Finish the Deep Clone 
@@ -1037,7 +1416,8 @@ public class TDS<T> {
 	
 	/**
 	 * Validates the data in TDS
-	 * 
+	 * Options:
+	 * 		Print the validation results if needed
 	 */
 	public String validateTDS() {
 		StringBuilder builder = new StringBuilder("Validate TDS: " + this.getClass() + " | Source: " + getSource());
@@ -1069,6 +1449,9 @@ public class TDS<T> {
 		builder.append("3. Null Records count: " + nullRecordsCount);
 		builder.append("\n"); builder.append("\t");
 		builder.append(nullRecords.toString());
+		builder.append("\n"); builder.append("End - Validate TDS");
+		
+		if(print) System.out.println("[PRINT] " + builder.toString());
 
 		return builder.toString();
 	}
@@ -1077,6 +1460,8 @@ public class TDS<T> {
 	 * Removes all the Null records in the TDS
 	 */
 	public boolean removeNullRecords() {
+		updateTransHistory(transHistory, "- Removed all Null Records");
+		if (debug) System.out.println("[DEBUG] Removed all Null Records");
 		return records.removeAll(Collections.singleton(null));
 	}
 	
@@ -1098,6 +1483,8 @@ public class TDS<T> {
 				}
 			}
 		}
+		updateTransHistory(transHistory, "- Trimmed all Records");
+		if (debug) System.out.println("[DEBUG] Trimmed all Records");
 	}
 	
 	/**
@@ -1123,8 +1510,47 @@ public class TDS<T> {
 				record.set(colIndex, (T) str);
 			}
 		}
+		updateTransHistory(transHistory, "- Trimmed Records for Column: " + columnName);
+		if (debug) System.out.println("[DEBUG] Trimmed Records for Column");
 	}
 	
+	/**
+	 * Print the TDS
+	 */
+	public void printTDS() {
+		System.out.print("Print ");
+		System.out.println(this);
+		System.out.println("End - Print TDS");
+	}
+	
+	/**
+	 * Print TDS Metadata
+	 */
+	public void printTDSMetadata() {
+		printTDSMetadata(false);
+	}
+	
+	/**
+	 * Print TDS Metadata
+	 */
+	public void printTDSMetadata(boolean disableWarnings) {
+		System.out.print("[PRINT] TDS Metadata: ");
+		StringBuilder builder = new StringBuilder(this.getClass() + "\n" + "Source: " + getSource());
+		if (getTransHistory() != null) builder.append("\n" + getTransHistory());
+		if (!disableWarnings) {
+			builder.append("\n" + "Warnings:");
+			if (getWarnings() != null) builder.append("\n" + getWarnings());
+		}
+		builder.append("\n" + "[rows=" + rows() + ", columns=" + columns() + "]");
+		builder.append("\n");
+		builder.append("columnHeaders=" + getColumnHeaders());
+		builder.append("\n");
+		builder.append("columnTypes=" + getColumnTypes());
+		builder.append("\n");
+		builder.append("dateFormats=" + getDateFormats());
+		System.out.println(builder.toString());
+		System.out.println("End - Print TDS Metadata");
+	}
 	
 	@Override
 	public String toString() {
@@ -1133,6 +1559,8 @@ public class TDS<T> {
 		builder.append("\n" + "[rows=" + rows() + ", columns=" + columns() + "]");
 		builder.append("\n");
 		builder.append("columnHeaders=" + getColumnHeaders());
+		builder.append("\n");
+		builder.append("columnTypes=" + getColumnTypes());
 		builder.append("\n");
 		builder.append("dateFormats=" + getDateFormats());
 		builder.append("\n");
